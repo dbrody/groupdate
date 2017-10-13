@@ -73,6 +73,16 @@ User.group_by_week(:created_at, time_zone: "Pacific Time (US & Canada)").count
 
 Time zone objects also work. To see a list of available time zones in Rails, run `rake time:zones:all`.
 
+### Month Start
+
+Month start on the 1st by default. Change this with:
+
+```ruby
+Groupdate.month_start = 10 # Months start on the 10th of each month
+```
+
+or
+
 ### Week Start
 
 Weeks start on Sunday by default. Change this with:

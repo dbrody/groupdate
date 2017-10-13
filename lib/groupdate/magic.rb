@@ -78,6 +78,8 @@ module Groupdate
             ["EXTRACT(MONTH from #{column}::timestamptz AT TIME ZONE ? - INTERVAL '#{day_start} second')::integer", time_zone]
           when :week # start on Sunday, not PostgreSQL default Monday
             ["(DATE_TRUNC('#{field}', (#{column}::timestamptz - INTERVAL '#{week_start} day' - INTERVAL '#{day_start} second') AT TIME ZONE ?) + INTERVAL '#{week_start} day' + INTERVAL '#{day_start} second') AT TIME ZONE ?", time_zone, time_zone]
+          when :month
+            ["(DATE_TRUNC('#{field}', (#{column}::timestamptz - INTERVAL '#{month_start} day' - INTERVAL '#{day_start} second') AT TIME ZONE ?) + INTERVAL '#{month_start} day' + INTERVAL '#{day_start} second') AT TIME ZONE ?", time_zone, time_zone]
           else
             ["(DATE_TRUNC('#{field}', (#{column}::timestamptz - INTERVAL '#{day_start} second') AT TIME ZONE ?) + INTERVAL '#{day_start} second') AT TIME ZONE ?", time_zone, time_zone]
           end
@@ -110,7 +112,7 @@ module Groupdate
               when :day
                 "%Y-%m-%d 00:00:00 UTC"
               when :month
-                "%Y-%m-01 00:00:00 UTC"
+                "%%Y-%%m-%s 00:00:00 UTC" % [(month_start + 1).to_s.rjust(2, '0')]
               when :quarter
                 raise Groupdate::Error, "Quarter not supported for SQLite"
               else # year
@@ -137,6 +139,8 @@ module Groupdate
             # back to UTC to play properly with the rest of Groupdate.
             #
             ["CONVERT_TIMEZONE(?, 'Etc/UTC', DATE_TRUNC(?, CONVERT_TIMEZONE(?, #{column}) - INTERVAL '#{week_start} day' - INTERVAL '#{day_start} second'))::timestamp + INTERVAL '#{week_start} day' + INTERVAL '#{day_start} second'", time_zone, field, time_zone]
+          when :month
+            ["CONVERT_TIMEZONE(?, 'Etc/UTC', DATE_TRUNC(?, CONVERT_TIMEZONE(?, #{column}) - INTERVAL '#{month_start} day' - INTERVAL '#{day_start} second'))::timestamp + INTERVAL '#{month_start} day' + INTERVAL '#{day_start} second'", time_zone, field, time_zone]
           else
             ["CONVERT_TIMEZONE(?, 'Etc/UTC', DATE_TRUNC(?, CONVERT_TIMEZONE(?, #{column}) - INTERVAL '#{day_start} second'))::timestamp + INTERVAL '#{day_start} second'", time_zone, field, time_zone]
           end
@@ -206,6 +210,10 @@ module Groupdate
         time_zone ||= options[:time_zone] || Groupdate.time_zone || (Groupdate.time_zone == false && "Etc/UTC") || Time.zone || "Etc/UTC"
         time_zone.is_a?(ActiveSupport::TimeZone) ? time_zone : ActiveSupport::TimeZone[time_zone]
       end
+    end
+
+    def month_start
+      @month_start ||= (options[:month_start] || options[:month_start] || Groupdate.month_start || 1) - 1
     end
 
     def week_start
