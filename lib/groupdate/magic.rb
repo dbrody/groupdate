@@ -79,7 +79,7 @@ module Groupdate
           when :week # start on Sunday, not PostgreSQL default Monday
             ["(DATE_TRUNC('#{field}', (#{column}::timestamptz - INTERVAL '#{week_start} day' - INTERVAL '#{day_start} second') AT TIME ZONE ?) + INTERVAL '#{week_start} day' + INTERVAL '#{day_start} second') AT TIME ZONE ?", time_zone, time_zone]
           when :month
-            ["(DATE_TRUNC('#{field}', (#{column}::timestamptz - INTERVAL '#{month_start} day' - INTERVAL '#{day_start} second') AT TIME ZONE ?) + INTERVAL '#{day_start} second') AT TIME ZONE ?", time_zone, time_zone]
+            ["(DATE_TRUNC('#{field}', (#{column}::timestamptz + INTERVAL '1 day' - INTERVAL '#{month_start} day' - INTERVAL '#{day_start} second') AT TIME ZONE ?) + INTERVAL '#{day_start} second') AT TIME ZONE ?", time_zone, time_zone]
           else
             ["(DATE_TRUNC('#{field}', (#{column}::timestamptz - INTERVAL '#{day_start} second') AT TIME ZONE ?) + INTERVAL '#{day_start} second') AT TIME ZONE ?", time_zone, time_zone]
           end
@@ -112,7 +112,7 @@ module Groupdate
               when :day
                 "%Y-%m-%d 00:00:00 UTC"
               when :month
-                "%%Y-%%m-%s 00:00:00 UTC" % [(month_start + 1).to_s.rjust(2, '0')]
+                "%%Y-%%m-%s 00:00:00 UTC" % [month_start.to_s.rjust(2, '0')]
               when :quarter
                 raise Groupdate::Error, "Quarter not supported for SQLite"
               else # year
@@ -213,7 +213,7 @@ module Groupdate
     end
 
     def month_start
-      @month_start ||= (options[:month_start] || options[:month_start] || Groupdate.month_start || 1) - 1
+      @month_start ||= (options[:month_start] || options[:month_start] || Groupdate.month_start || 1)
     end
 
     def week_start
